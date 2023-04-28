@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <script src="https://unpkg.com/vue@next"></script>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
+
+    <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+    <script src="//unpkg.com/@element-plus/icons-vue"></script>
+    <title>图像搜索系统</title>
+</head>
+<body style="background-color:  #f1f9ff;">
+<script type="text/javascript">
+
+    !function () {
+        //封装方法，压缩之后减少文件大小
+        function get_attribute(node, attr, default_value) {
+            return node.getAttribute(attr) || default_value;
+        }
+
+        //封装方法，压缩之后减少文件大小
+        function get_by_tagname(name) {
+            return document.getElementsByTagName(name);
+        }
+        //获取配置参数
+        function get_config_option() {
+            var scripts = get_by_tagname("script"),
+                script_len = scripts.length,
+                script = scripts[script_len - 1]; //当前加载的script
+            return {
+                l: script_len, //长度，用于生成id用
+                z: get_attribute(script, "zIndex", -1), //z-index
+                o: get_attribute(script, "opacity", 0.8), //opacity
+                c: get_attribute(script, "color", "255,255,255"), //color
+                n: get_attribute(script, "count", 350) //count
+            };
+        }
+
+        //设置canvas的高宽
+        function set_canvas_size() {
+            canvas_width = the_canvas.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
+                canvas_height = the_canvas.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+        }
+
+        //绘制过程
+        function draw_canvas() {
+            context.clearRect(0, 0, canvas_width, canvas_height);
+            //随机的线条和当前位置联合数组
+            var e, i, d, x_dist, y_dist, dist; //临时节点
+            //遍历处理每一个点
+            random_points.forEach(function (r, idx) {
+                r.x += r.xa,
+                    r.y += r.ya, //移动
+                    r.xa *= r.x > canvas_width || r.x < 0 ? -1 : 1,
+                    r.ya *= r.y > canvas_height || r.y < 0 ? -1 : 1, //碰到边界，反向反弹
+                    context.fillRect(r.x - 0.5, r.y - 0.5, 1, 1); //绘制一个宽高为1的点
+                //从下一个点开始
+                for (i = idx + 1; i < all_array.length; i++) {
+                    e = all_array[i];
+                    // 当前点存在
+                    if (null !== e.x && null !== e.y) {
+                        x_dist = r.x - e.x; //x轴距离 l
+                        y_dist = r.y - e.y; //y轴距离 n
+                        dist = x_dist * x_dist + y_dist * y_dist; //总距离, m
+
+                        dist < e.max && (e === current_point && dist >= e.max / 2 && (r.x -= 0.03 * x_dist, r.y -= 0.03 * y_dist), //靠近的时候加速
+                            d = (e.max - dist) / e.max,
+                            context.beginPath(),
+                            context.lineWidth = d / 2,
+                            context.strokeStyle = "#63b0ff",
+                            context.moveTo(r.x, r.y),
+                            context.lineTo(e.x, e.y),
+                            context.stroke());
+                    }
+                }
+            }), frame_func(draw_canvas);
+        }
+
+        //创建画布，并添加到body中
+        var the_canvas = document.createElement("canvas"), //画布
+            config = get_config_option(), //配置
+            canvas_id = "c_n" + config.l, //canvas id
+            context = the_canvas.getContext("2d"), canvas_width, canvas_height,
+            frame_func = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function (func) {
+                window.setTimeout(func, 1000 / 40);
+            }, random = Math.random,
+            current_point = {
+                x: null, //当前鼠标x
+                y: null, //当前鼠标y
+                max: 20000 // 圈半径的平方
+            },
+            all_array;
+        the_canvas.id = canvas_id;
+        the_canvas.style.cssText = "position:fixed;top:0;left:0;z-index:" + config.z + ";opacity:" + config.o;
+        get_by_tagname("body")[0].appendChild(the_canvas);
+
+        //初始化画布大小
+        set_canvas_size();
+        window.onresize = set_canvas_size;
+        //当时鼠标位置存储，离开的时候，释放当前位置信息
+        window.onmousemove = function (e) {
+            e = e || window.event;
+            current_point.x = e.clientX;
+            current_point.y = e.clientY;
+        }, window.onmouseout = function () {
+            current_point.x = null;
+            current_point.y = null;
+        };
+        //随机生成config.n条线位置信息
+        for (var random_points = [], i = 0; config.n > i; i++) {
+            var x = random() * canvas_width, //随机位置
+                y = random() * canvas_height,
+                xa = 2 * random() - 1, //随机运动方向
+                ya = 2 * random() - 1;
+            // 随机点
+            random_points.push({
+                x: x,
+                y: y,
+                xa: xa,
+                ya: ya,
+                max: 6000 //沾附距离
+            });
+        }
+        all_array = random_points.concat([current_point]);
+        //0.5秒后绘制
+        setTimeout(function () {
+            draw_canvas();
+        }, 500);
+    }();
+</script>
+<div id="app">
+    <el-main class="home_card" v-loading.fullscreen.lock="fullscreenLoading">
+        <el-row>
+            <el-col :span="6" justify="center">
+                <img src="/assets/title.png" style="width: 60%;margin-left: 20%">
+            </el-col>
+            <el-col :span="12" justify="center">
+                <h3 class="title">图片搜索引擎</h3>
+            </el-col>
+            <el-col :span="6">
+            </el-col>
+        </el-row>
+        <div class="author_info">
+            2052139 焦佳宇
+        </div>
+        <el-divider>
+        </el-divider>
+        <div class="upload_field">
+            <el-row>
+                <el-col :span="8">
+                    <form method=post enctype=multipart/form-data>
+                        <!--<input data-bind="value: title" type="text" id="inputTask" placeholder="Path to the image" style="width: 150px;">-->
+                        <input class="upload-demo" type="file" name="file" required @change="handleChange()"/>
+                        <input type=submit value="Search" @click="handleUploadFile()">
+                    </form>
+                </el-col>
+                <el-col :span="12">
+                    <button class="preview_button" @click="previewVisible=true" v-show="upload_preview_name!=''" >预览图片</button>
+                </el-col>
+
+            </el-row>
+
+            <el-dialog v-model="previewVisible" :title="upload_preview_name" @close="previewVisible=false">
+                <div style="width: 90%;margin-left: 5%">
+                    <img :src="upload_preview_url"
+                         style="margin-left: 10%;width: 80%; object-fit: cover;border-radius: 10px;">
+                </div>
+            </el-dialog>
+        </div>
+        <div class="res_list" v-show="this.res_list.length!=0">
+<!--        <div class="res_list">-->
+            <el-row>
+                <el-col :span="3" justify="center">
+                    <p id="result_num"  style="font-size:small;padding-left: 5px">共找到 0 条搜索结果</p>
+                </el-col>
+                <el-col :span="2" justify="center" v-if="this.show_more==false">
+                    <el-link style="padding-top: 13px" @click="getMore()" type="primary">More</el-link>
+                </el-col>
+                <el-col :span="6">
+                    <el-switch
+                            style="padding-top: 6px"
+                            active-text="只显示我喜欢"
+                            inactive-text="显示全部"
+                            v-model="justLike">
+                    </el-switch>
+                </el-col>
+            </el-row>
+            <el-tabs
+                    v-model="activeName"
+                    type="border-card"
+                    class="demo-tabs"
+                    @tab-click="handleClick"
+                    style="border-radius: 5px"
+            >
+                <el-tab-pane label="最相关" name="first">
+                    <el-space wrap :fill="fill" :size="small">
+                        <el-card :body-style="{ padding: '0px' }" shadow="hover" class="image_card"
+                                 v-for="url in this.res_list_show" >
+                            <div style="height: 300px">
+                                <img :src="url"
+                                     style="width: 100%; height: 100%; object-fit: cover;border-top-left-radius: 10px; border-top-right-radius: 10px;">
+                            </div>
+                            <div style="padding: 14px;">
+                                <svg v-if="this.favourite_list.includes(url)" @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#F44336" p-id="3935"></path></svg>
+                                <svg v-else @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#bfbfbf" p-id="3935"></path></svg>
+                            </div>
+                        </el-card>
+                    </el-space>
+                </el-tab-pane>
+                <el-tab-pane label="最不相关" name="second">
+                    <el-space wrap :fill="fill" :size="large">
+                        <el-card :body-style="{ padding: '0px' }" shadow="hover" class="image_card"
+                                 v-for="url in this.res_list_show_reverse">
+                            <div style="height: 300px">
+                                <img :src="url"
+                                     style="width: 100%; height: 100%; object-fit: cover;border-top-left-radius: 10px; border-top-right-radius: 10px;">
+                            </div>
+                            <div style="padding: 14px;">
+                                <svg v-if="this.favourite_list.includes(url)" @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#F44336" p-id="3935"></path></svg>
+                                <svg v-else @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#bfbfbf" p-id="3935"></path></svg>
+                            </div>
+                        </el-card>
+                    </el-space>
+                </el-tab-pane>
+            </el-tabs>
+        </div>
+        <div v-show="this.res_list_show.length==0">
+            <el-empty style="padding-top: 10%" description="暂无结果"></el-empty>
+        </div>
+    </el-main>
+</div>
+<script>
+    const App = {
+        data() {
+            return {
+                message: "Hello Element Plus",
+                upload_preview_url: "",
+                upload_preview_name: "",
+                // 总数
+                res_list: [],
+                res_list_reverse: [],
+                // 显示列表
+                res_list_show:[],
+                res_list_show_reverse:[],
+                show_more: false,
+                previewVisible: false,
+                favourite_list: [],
+                activeName: 'first',
+                justLike: false,
+                fullscreenLoading: false,
+            };
+        },
+        // 在页面刷新时将favorite_list存入localStorage
+        beforeDestroy(){
+            localStorage.setItem("favorite_list",JSON.stringify(this.favourite_list));
+        },
+        created(){
+            // 从localStorage中读取favorite_list
+            if(localStorage.getItem("favorite_list") != null)
+                this.favourite_list = JSON.parse(localStorage.getItem("favorite_list"));
+
+        },
+        watch: {
+            res_list_show: function (val) {
+                console.log(val)
+                // 修改id为result_num的元素的<p>标签内容
+                document.getElementById("result_num").innerHTML = "共找到"+val.length+"条搜索结果";
+            },
+            justLike: function (val) {
+               if(val==true)
+                   this.likeFilter();
+               else
+                   this.likeFilterCancel();
+            }
+        },
+        methods: {
+            likeFilter(){
+                let len;
+                let _this = this;
+                _this.res_list_show = [];
+                _this.res_list_show_reverse = [];
+                if(_this.show_more==true){
+                    len=_this.res_list.length;
+                }
+                else{
+                    len=15;
+                }
+                for(let i=0;i<len;i++){
+                    if(_this.favourite_list.includes(_this.res_list[i])){
+                        _this.res_list_show.push(_this.res_list[i]);
+                    }
+                }
+                let temp = [].concat(_this.res_list_show);
+                _this.res_list_show_reverse = temp.reverse();
+            },
+            likeFilterCancel(){
+                let _this = this;
+                if(_this.show_more==true){
+                    _this.res_list_show = [].concat(_this.res_list);
+                    let temp = [].concat(_this.res_list);
+                    _this.res_list_show_reverse = temp.reverse();
+                }
+                else{
+                    _this.res_list_show = [].concat(_this.res_list.slice(0,15));
+                    let temp = [].concat(_this.res_list.slice(0,15));
+                    _this.res_list_show_reverse = temp.reverse();
+                }
+            },
+            getMore(){
+                let _this = this;
+                _this.show_more = true;
+                _this.res_list_show = [].concat(_this.res_list);
+                let temp = [].concat(_this.res_list);
+                _this.res_list_reverse = temp.reverse();
+            },
+            changeLike(url){
+                let _this = this;
+                if(_this.favourite_list.includes(url)){
+                    _this.favourite_list.splice(_this.favourite_list.indexOf(url),1);
+                    this.$message({
+                        message: '已取消收藏',
+                        type: 'success',
+                        duration: 1500
+                    });
+                }else{
+                    _this.favourite_list.push(url);
+                    this.$message({
+                        message: '收藏成功!',
+                        type: 'success',
+                        duration: 1500
+                    });
+                }
+            },
+            handleChange() {
+                let _this = this;
+                var file = document.querySelector('input[type=file]').files[0];
+                var reader = new FileReader();
+                reader.onloadend = function () {
+                    _this.upload_preview_url = reader.result
+                }
+                // 获取文件名
+                _this.upload_preview_name = file.name;
+                if (file) {
+                    reader.readAsDataURL(file);
+                } else {
+                    _this.upload_preview_url = "";
+                }
+
+            },
+            handleUploadFile() {
+                let _this = this;
+                _this.fullscreenLoading = true;
+                $("form").submit(function (evt) {
+                    evt.preventDefault();
+                    var formData = new FormData($(this)[0]);
+                    $.ajax({
+                        url: 'imgUpload',
+                        type: 'POST',
+                        data: formData,
+                        //async: false,
+                        cache: false,
+                        contentType: false,
+                        enctype: 'multipart/form-data',
+                        processData: false,
+
+                        success: function (response) {
+                            console.log("success");
+                            console.log(response);
+                            // response 是对象，要转为数组
+                            _this.fullscreenLoading = false;
+                            _this.show_more=false;
+                            _this.justLike=false;
+                            _this.res_list = [].concat(response);
+                            _this.res_list_reverse = [].concat(response.reverse());
+                            _this.res_list_show = [].concat(_this.res_list.slice(0, 15));
+                            _this.res_list_show_reverse = [].concat(_this.res_list_reverse.slice(0, 15).reverse());
+                        },
+                        fail: function (response) {
+                            console.log("fail");
+                            console.log(response);
+                        }
+
+                    });
+                    return false;
+                })
+            },
+        },
+    };
+    const app = Vue.createApp(App);
+    app.use(ElementPlus);
+    app.mount("#app");
+</script>
+</body>
+<style>
+    #app {
+        font-family: 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+    }
+
+    .home_card {
+        border-radius: 36px;
+        background: #e0e0e0;
+        box-shadow: 20px 20px 60px #bebebe,
+        -20px -20px 60px #ffffff;
+        width: 90%;
+        margin-left: 5%;
+        min-height: 90vh;
+        background: linear-gradient(#ffffffd0, #c6eefe);
+        opacity: 0.75;
+    }
+
+    .title {
+        text-align: center;
+        font-size: 3rem;
+        margin-top: 3%;
+        padding-top: 1%;
+        color: #000000;
+        font-weight: 600;
+    }
+
+    .author_info {
+        text-align: center;
+        font-size: small;
+        color: #000000;
+    }
+
+    .image_card {
+        width: 24vw;
+        border-radius: 10px;
+        transition: 0.5s ease-out;
+        overflow: visible;
+        border-width: medium;
+        border-color: transparent;
+    }
+
+    .image_card:hover {
+        border-color: #008bf8;
+        box-shadow: 0 8px 36px 0 rgba(0, 0, 0, 0.25);
+    }
+
+    .upload_field {
+        width: 90%;
+        margin-left: 5%;
+    }
+
+    .res_list {
+        width: 90%;
+        margin-left: 5%;
+        margin-top: 2%;
+    }
+    input[type="file"]::file-selector-button {
+        border: 2px solid #24c9fb;
+        background-color: #24c9fb;
+        border-radius: 0.7em;
+        padding: 0.4em 0.6em 0.4em 0.5em;
+        transition: all ease-in-out 0.2s;
+        font-size: 16px;
+        color: white;
+    }
+
+    input[type="file"]::file-selector-button:hover {
+        background-color: #0071e2;
+    }
+
+    input[type="submit"] {
+        --width: 90px;
+        --timing: 2s;
+        border: 0;
+        width: var(--width);
+        padding-block: 0.9em;
+        color: #fff;
+        font-weight: bold;
+        font-size: 0.8em;
+        background: rgb(64, 192, 87);
+        transition: all 0.2s;
+        border-radius: 7px;
+    }
+
+    input[type="submit"]:hover {
+        background-image: linear-gradient(to right, rgb(250, 82, 82), rgb(250, 82, 82) 16.65%, rgb(190, 75, 219) 16.65%, rgb(190, 75, 219) 33.3%, rgb(76, 110, 245) 33.3%, rgb(76, 110, 245) 49.95%, rgb(64, 192, 87) 49.95%, rgb(64, 192, 87) 66.6%, rgb(250, 176, 5) 66.6%, rgb(250, 176, 5) 83.25%, rgb(253, 126, 20) 83.25%, rgb(253, 126, 20) 100%, rgb(250, 82, 82) 100%);
+        animation: var(--timing) linear dance6123 infinite;
+        transform: scale(1.1) translateY(-1px);
+    }
+
+    @keyframes dance6123 {
+        to {
+            background-position: var(--width);
+        }
+    }
+
+    .preview_button {
+        --main-color: #ffce06;
+        --main-alt-color: #fff696;
+        height: 40px;
+        font-size: 16px!important;
+        line-height: 40px;
+        font-weight: 700;
+        color: black;
+        text-shadow: 0 1px 1px #fff8c4;
+        text-transform: uppercase;
+        text-align: center;
+        -webkit-box-shadow: rgb(99 121 133 / 14%) 0 0 0 4px;
+        box-shadow: rgb(99 121 133 / 14%) 0 0 0 4px;
+        border-radius: 4px;
+        border: none;
+        border-top: 1px solid var(--main-alt-color);
+        border-bottom: 1px solid var(--main-color);
+        background-color: var(--main-color);
+        outline: 0;
+        cursor: pointer;
+        margin: 0 0 5px 4px;
+        padding: 0 20px;
+        transition: transform .3s ease;
+    }
+
+
+    .preview_button:hover {
+        border-top-color: var(--main-alt-color);
+        border-bottom-color: var(--main-color);
+        background: -webkit-gradient(linear, left top, left bottom, from(#fae811), to(#f5d604));
+    }
+
+    .preview_button:active {
+        transform: scale(0.7);
+    }
+</style>
+</html>
