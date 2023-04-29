@@ -159,8 +159,11 @@
                         <input type=submit value="Search" @click="handleUploadFile()">
                     </form>
                 </el-col>
-                <el-col :span="12">
+                <el-col :span="4">
                     <button class="preview_button" @click="previewVisible=true" v-show="upload_preview_name!=''" >预览图片</button>
+                </el-col>
+                <el-col :span="4">
+                    <button class="preview_button" @click="selectVisible=true" v-show="this.res_list.length!=0" >标签筛选</button>
                 </el-col>
 
             </el-row>
@@ -197,17 +200,30 @@
                     @tab-click="handleClick"
                     style="border-radius: 5px"
             >
+                <el-drawer v-model="selectVisible" :direction="ttb" @close="selectFilter()">
+                    <template #header>
+                        <h4>选取标签</h4>
+                    </template>
+                    <template #default>
+                        <div>
+                            <el-space wrap :fill="fill">
+                                <el-check-tag v-text="tag" :checked="tag_selected.includes(tag)" @click="selectHandler(tag)" v-for="tag in tag_list">
+                                </el-check-tag>
+                            </el-space>
+                        </div>
+                    </template>
+                </el-drawer>
                 <el-tab-pane label="最相关" name="first">
                     <el-space wrap :fill="fill" :size="small">
                         <el-card :body-style="{ padding: '0px' }" shadow="hover" class="image_card"
-                                 v-for="url in this.res_list_show" >
+                                 v-for="item in this.res_list_show" >
                             <div style="height: 300px">
-                                <img :src="url"
+                                <img :src="item.url"
                                      style="width: 100%; height: 100%; object-fit: cover;border-top-left-radius: 10px; border-top-right-radius: 10px;">
                             </div>
                             <div style="padding: 14px;">
-                                <svg v-if="this.favourite_list.includes(url)" @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#F44336" p-id="3935"></path></svg>
-                                <svg v-else @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#bfbfbf" p-id="3935"></path></svg>
+                                <svg v-if="this.favourite_list.includes(item.url)" @click="changeLike(item.url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#F44336" p-id="3935"></path></svg>
+                                <svg v-else @click="changeLike(item.url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#bfbfbf" p-id="3935"></path></svg>
                             </div>
                         </el-card>
                     </el-space>
@@ -215,14 +231,14 @@
                 <el-tab-pane label="最不相关" name="second">
                     <el-space wrap :fill="fill" :size="large">
                         <el-card :body-style="{ padding: '0px' }" shadow="hover" class="image_card"
-                                 v-for="url in this.res_list_show_reverse">
+                                 v-for="item in this.res_list_show_reverse">
                             <div style="height: 300px">
-                                <img :src="url"
+                                <img :src="item.url"
                                      style="width: 100%; height: 100%; object-fit: cover;border-top-left-radius: 10px; border-top-right-radius: 10px;">
                             </div>
                             <div style="padding: 14px;">
-                                <svg v-if="this.favourite_list.includes(url)" @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#F44336" p-id="3935"></path></svg>
-                                <svg v-else @click="changeLike(url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#bfbfbf" p-id="3935"></path></svg>
+                                <svg v-if="this.favourite_list.includes(item.url)" @click="changeLike(item.url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#F44336" p-id="3935"></path></svg>
+                                <svg v-else @click="changeLike(item.url)" style="width: 30px;height: 30px" t="1682698765089" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3934" width="200" height="200"><path d="M725.333333 192c-89.6 0-168.533333 44.8-213.333333 115.2C467.2 236.8 388.266667 192 298.666667 192 157.866667 192 42.666667 307.2 42.666667 448c0 253.866667 469.333333 512 469.333333 512s469.333333-256 469.333333-512c0-140.8-115.2-256-256-256z" fill="#bfbfbf" p-id="3935"></path></svg>
                             </div>
                         </el-card>
                     </el-space>
@@ -253,6 +269,11 @@
                 activeName: 'first',
                 justLike: false,
                 fullscreenLoading: false,
+                // 所有的tag
+                tag_list: [],
+                // 选中的tag
+                tag_selected: [],
+                selectVisible:false
             };
         },
         // 在页面刷新时将favorite_list存入localStorage
@@ -279,6 +300,78 @@
             }
         },
         methods: {
+            selectFilter(){
+                let _this=this;
+                // 根据tag筛选情况，筛选res_show_list
+                if(_this.justLike){
+                    _this.likeFilter()
+                }
+                else{
+                    _this.likeFilterCancel()
+                }
+                if(_this.tag_selected.length!=0){
+                    for(let i=0;i<_this.res_list_show.length;++i) {
+                        let tag_list_len = _this.res_list_show[i].tag_list.length
+                        for (let j = 0; j < tag_list_len; ++j) {
+                            if (_this.tag_selected.includes(_this.res_list_show[i].tag_list[j])) {
+                                break;
+                            } else {
+                                if (j == _this.res_list_show[i].tag_list.length - 1) {
+                                    _this.res_list_show.splice(i, 1)
+                                }
+                            }
+                        }
+                    }
+                    for(let i=0;i<_this.res_list_show_reverse.length;++i) {
+                        let tag_list_len = _this.res_list_show_reverse[i].tag_list.length
+                        for(let j=0;j<tag_list_len;++j){
+                            if(_this.tag_selected.includes(_this.res_list_show_reverse[i].tag_list[j])){
+                                break;
+                            }
+                            else {
+                                if(j==_this.res_list_show_reverse[i].tag_list.length-1){
+                                    _this.res_list_show_reverse.splice(i,1)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            selectHandler(tag){
+                let _this = this;
+                if(_this.tag_selected.includes(tag)){
+                    _this.tag_selected.splice(_this.tag_selected.indexOf(tag),1);
+                }
+                else{
+                    _this.tag_selected.push(tag)
+                }
+                console.log(_this.tag_selected)
+            },
+            remakeAllTags(){
+              let _this=this;
+              _this.tag_list=[];
+              _this.select_tag=[];
+              for(let i=0;i<_this.res_list_show.length;++i){
+                    for(let j=0;j<_this.res_list_show[i].tag_list.length;++j){
+                        if(!_this.tag_list.includes(_this.res_list_show[i].tag_list[j])){
+                            _this.tag_list.push(_this.res_list_show[i].tag_list[j]);
+                        }
+                    }
+              }
+            },
+            makeImgTagList() {
+                let _this = this;
+                // 修改res_list格式
+                for (let i = 0; i < _this.res_list.length; ++i) {
+                    let url = _this.res_list[i][0];
+                    // taglist是第二个元素一直到最后一个元素
+                    let taglist = _this.res_list[i].slice(1);
+                    _this.res_list[i] = {
+                        url: url,
+                        tag_list: taglist
+                    }
+                }
+            },
             likeFilter(){
                 let len;
                 let _this = this;
@@ -291,7 +384,7 @@
                     len=15;
                 }
                 for(let i=0;i<len;i++){
-                    if(_this.favourite_list.includes(_this.res_list[i])){
+                    if(_this.favourite_list.includes(_this.res_list[i].url)){
                         _this.res_list_show.push(_this.res_list[i]);
                     }
                 }
@@ -315,8 +408,7 @@
                 let _this = this;
                 _this.show_more = true;
                 _this.res_list_show = [].concat(_this.res_list);
-                let temp = [].concat(_this.res_list);
-                _this.res_list_reverse = temp.reverse();
+                _this.res_list_reverse_show = [].concat(_this.res_list_reverse);
             },
             changeLike(url){
                 let _this = this;
@@ -376,9 +468,12 @@
                             _this.show_more=false;
                             _this.justLike=false;
                             _this.res_list = [].concat(response);
-                            _this.res_list_reverse = [].concat(response.reverse());
+                            _this.makeImgTagList()
+                            let tmp = [].concat(_this.res_list);
+                            _this.res_list_reverse = [].concat(tmp.reverse());
                             _this.res_list_show = [].concat(_this.res_list.slice(0, 15));
                             _this.res_list_show_reverse = [].concat(_this.res_list_reverse.slice(0, 15).reverse());
+                            _this.remakeAllTags();
                         },
                         fail: function (response) {
                             console.log("fail");

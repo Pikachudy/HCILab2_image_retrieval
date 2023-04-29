@@ -83,8 +83,32 @@ def upload_img():
             image_path = "/result"
             image_list =[os.path.join(image_path, file) for file in os.listdir(result)
                               if not file.startswith('.')]
-
+            image_list = get_tag_for_image(image_list)
             return jsonify(image_list)
+
+def get_tag_for_image(image_list):
+    image_index_list = []
+    for i in range(len(image_list)):
+        image_name = image_list[i]
+        # 获取字符串中的数字
+        index = int(''.join([x for x in image_name if x.isdigit()]))
+        image_index_list.append(index)
+        # 转为列表
+        image_list[i] = [image_list[i]]
+    # 循环遍历database/tags文件夹下的所有txt文件
+    for file in os.listdir("database/tags"):
+        # 获取文件名，不带后缀，作为tag名称
+        tag_name = os.path.splitext(file)[0]
+        # 读取文件内容,若内容包含图片序号，则将tag加入到对应的图片列表中
+        with open(os.path.join("database/tags", file), 'r') as f:
+            for line in f.readlines():
+                if(line=='\n'):
+                     break
+                index = int(line.strip())
+                if index in image_index_list:
+                    image_list[image_index_list.index(index)].append(tag_name)
+                    print("将"+tag_name+"存入"+image_list[image_index_list.index(index)][0])
+    return image_list
 
 #==============================================================================================================================
 #                                                                                                                              
